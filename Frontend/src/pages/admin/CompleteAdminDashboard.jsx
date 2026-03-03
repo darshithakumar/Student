@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api } from '../api/client'
+import api from '../../api/client'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
@@ -56,21 +56,13 @@ export default function AdminDashboard() {
           return
         }
 
-        // Get analytics
-        const analyticsRes = await api.get('/admin/analytics')
-        setStats(analyticsRes.data)
+        // Get admin dashboard stats
+        const dashboardRes = await api.get('/admin/dashboard')
+        setStats(dashboardRes.data)
 
         // Get all students
         const studentsRes = await api.get('/admin/students')
-        setStudents(studentsRes.data || [])
-
-        // Get assignments
-        const assignmentsRes = await api.get('/admin/assignments')
-        setAssignments(assignmentsRes.data || [])
-
-        // Get quizzes
-        const quizzesRes = await api.get('/admin/quizzes')
-        setQuizzes(quizzesRes.data || [])
+        setStudents(studentsRes.data.students || [])
 
         setLoading(false)
       } catch (error) {

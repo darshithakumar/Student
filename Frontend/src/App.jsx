@@ -3,8 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useAuthStore } from './store/authStore'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
-import CompleteStudentDashboard from './pages/student/CompleteStudentDashboard'
-import CompleteAdminDashboard from './pages/admin/CompleteAdminDashboard'
+import StudentDashboard from './pages/student/SimpleStudentDashboard'
+import AdminDashboard from './pages/admin/CompleteAdminDashboard'
 import { authAPI } from './api/client'
 
 function App() {
@@ -40,7 +40,7 @@ function App() {
           path="/student/*"
           element={
             <ProtectedRoute requiredRole="student">
-              <CompleteStudentDashboard />
+              <StudentDashboard />
             </ProtectedRoute>
           }
         />
@@ -49,7 +49,7 @@ function App() {
           path="/admin/*"
           element={
             <ProtectedRoute requiredRole="admin">
-              <CompleteAdminDashboard />
+              <AdminDashboard />
             </ProtectedRoute>
           }
         />
