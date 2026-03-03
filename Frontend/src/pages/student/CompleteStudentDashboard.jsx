@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api } from '../api/client'
+import api from '../../api/client'
 
 export default function StudentDashboard() {
   const navigate = useNavigate()
@@ -36,38 +36,26 @@ export default function StudentDashboard() {
           return
         }
 
-        // Get student profile
-        const profileRes = await api.get('/student/profile')
-        const studentData = profileRes.data
+        // Get student dashboard/profile
+        const dashboardRes = await api.get('/student/dashboard')
+        const studentData = dashboardRes.data
         setStudent(studentData)
 
-        const currentYear = getCurrentYear(studentData.batch_year)
-
-        // Get academic content for current year
-        const contentRes = await api.get(
-          `/content/materials?year=${currentYear}&department=${studentData.department}`
-        )
-        setAcademicContent(contentRes.data || [])
-
-        // Get assignments
-        const assignmentsRes = await api.get('/assignments')
+        // Get assignments for student
+        const assignmentsRes = await api.get('/student/assignments')
         setAssignments(assignmentsRes.data || [])
 
-        // Get quizzes
-        const quizzesRes = await api.get('/quizzes')
+        // Get quizzes for student
+        const quizzesRes = await api.get('/student/quizzes')
         setQuizzes(quizzesRes.data || [])
 
         // Get attendance
-        const attendanceRes = await api.get('/attendance/summary')
+        const attendanceRes = await api.get('/student/attendance')
         setAttendance(attendanceRes.data)
 
         // Get notifications
-        const notificationsRes = await api.get('/notifications')
+        const notificationsRes = await api.get('/student/notifications')
         setNotifications(notificationsRes.data || [])
-
-        // Get progress
-        const progressRes = await api.get('/student/progress')
-        setProgress(progressRes.data)
 
         // Get todos
         const todosRes = await api.get('/student/todos')

@@ -6,8 +6,8 @@ import { Lock, Mail } from 'lucide-react'
 export default function Login() {
   const navigate = useNavigate()
   const { login, isLoading, error, clearError } = useAuthStore()
-  const [email, setEmail] = useState('john.doe@college.edu')
-  const [password, setPassword] = useState('TestPassword123!')
+  const [email, setEmail] = useState('student1@college.com')
+  const [password, setPassword] = useState('student123')
   const [loginError, setLoginError] = useState('')
 
   const handleSubmit = async (e) => {
@@ -49,7 +49,7 @@ export default function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="input-field"
-              placeholder="your.email@college.edu"
+              placeholder="your.email@college.com"
               required
             />
           </div>
@@ -79,11 +79,13 @@ export default function Login() {
         </form>
 
         <div className="mt-6 p-4 bg-gray-50 rounded-lg text-sm text-gray-700">
-          <p className="font-semibold mb-2">Test Credentials:</p>
-          <p><strong>Student:</strong> john.doe@college.edu</p>
-          <p><strong>Password:</strong> TestPassword123!</p>
-          <p className="mt-2"><strong>Admin:</strong> admin@college.edu</p>
-          <p><strong>Password:</strong> AdminPassword123!</p>
+          <p className="font-semibold mb-2">📝 Test Credentials:</p>
+          <p className="mb-3"><strong>👨‍💼 Admin:</strong></p>
+          <p className="ml-4">Email: admin@college.com</p>
+          <p className="ml-4 mb-3">Password: admin123</p>
+          <p><strong>👨‍🎓 Student:</strong></p>
+          <p className="ml-4">Email: student1@college.com</p>
+          <p className="ml-4">Password: student123</p>
         </div>
       </div>
     </div>
