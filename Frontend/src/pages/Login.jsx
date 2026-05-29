@@ -78,15 +78,6 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg text-sm text-gray-700">
-          <p className="font-semibold mb-2">📝 Test Credentials:</p>
-          <p className="mb-3"><strong>👨‍💼 Admin:</strong></p>
-          <p className="ml-4">Email: admin@college.com</p>
-          <p className="ml-4 mb-3">Password: admin123</p>
-          <p><strong>👨‍🎓 Student:</strong></p>
-          <p className="ml-4">Email: student1@college.com</p>
-          <p className="ml-4">Password: student123</p>
-        </div>
       </div>
     </div>
   )
