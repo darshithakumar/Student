@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import api from '../../api/client'
+import api, { aiAPI } from '../../api/client'
 
 export default function StudentDashboard() {
   const navigate = useNavigate()
@@ -16,6 +16,7 @@ export default function StudentDashboard() {
   const [activeTab, setActiveTab] = useState('overview')
   const [newTodo, setNewTodo] = useState('')
   const [showAiAssistant, setShowAiAssistant] = useState(false)
+  const [aiInsights, setAiInsights] = useState('')
 
   // Calculate current year based on batch year
   const getCurrentYear = (batchYear) => {
@@ -43,11 +44,11 @@ export default function StudentDashboard() {
 
         // Get assignments for student
         const assignmentsRes = await api.get('/student/assignments')
-        setAssignments(assignmentsRes.data || [])
+        setAssignments(assignmentsRes.data.assignments || [])
 
         // Get quizzes for student
         const quizzesRes = await api.get('/student/quizzes')
-        setQuizzes(quizzesRes.data || [])
+        setQuizzes(quizzesRes.data.quizzes || [])
 
         // Get attendance
         const attendanceRes = await api.get('/student/attendance')
@@ -55,11 +56,19 @@ export default function StudentDashboard() {
 
         // Get notifications
         const notificationsRes = await api.get('/student/notifications')
-        setNotifications(notificationsRes.data || [])
+        setNotifications(notificationsRes.data.notifications || [])
 
         // Get todos
         const todosRes = await api.get('/student/todos')
-        setTodos(todosRes.data || [])
+        setTodos(todosRes.data.todos || [])
+
+        // Get AI Insights
+        try {
+          const aiRes = await aiAPI.getStudentAssistant()
+          setAiInsights(aiRes.data.message)
+        } catch (e) {
+          console.error('Error fetching student AI insights:', e)
+        }
 
         setLoading(false)
       } catch (error) {
@@ -129,15 +138,18 @@ export default function StudentDashboard() {
   const yearName = ['', '1st Year', '2nd Year', '3rd Year', '4th Year'][currentYear]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-slate-50 relative overflow-hidden">
+      {/* Decorative background blur */}
+      <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-br from-blue-600/10 to-indigo-600/10 blur-3xl -z-10 rounded-b-full"></div>
+
       {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between items-center">
+      <header className="glass-panel sticky top-0 z-50 rounded-none border-b border-white/40 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Welcome, {student.name}! 👋
+            <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">
+              Welcome, <span className="text-gradient">{student.name}</span> 👋
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-slate-500 mt-1 font-medium text-sm tracking-wide">
               {student.department} • {yearName} • Batch {student.batch_year}
             </p>
           </div>
@@ -146,9 +158,9 @@ export default function StudentDashboard() {
               localStorage.clear()
               navigate('/login')
             }}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+            className="btn-secondary text-sm px-4 py-2"
           >
-            Logout
+            Sign Out
           </button>
         </div>
       </header>
@@ -157,10 +169,10 @@ export default function StudentDashboard() {
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">Attendance</p>
+                <p className="text-slate-500 font-semibold text-xs tracking-wider uppercase mb-1">Attendance</p>
                 <p className="text-3xl font-bold text-blue-600">
                   {attendance?.attendance_percentage.toFixed(1)}%
                 </p>
@@ -169,10 +181,10 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">GPA</p>
+                <p className="text-slate-500 font-semibold text-xs tracking-wider uppercase mb-1">GPA</p>
                 <p className="text-3xl font-bold text-green-600">
                   {progress?.gpa.toFixed(2)}
                 </p>
@@ -181,10 +193,10 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">Assignments Done</p>
+                <p className="text-slate-500 font-semibold text-xs tracking-wider uppercase mb-1">Assignments Done</p>
                 <p className="text-3xl font-bold text-orange-600">
                   {progress?.total_assignments_completed}
                 </p>
@@ -193,10 +205,10 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">Quizzes Done</p>
+                <p className="text-slate-500 font-semibold text-xs tracking-wider uppercase mb-1">Quizzes Done</p>
                 <p className="text-3xl font-bold text-purple-600">
                   {progress?.total_quizzes_attempted}
                 </p>
@@ -574,26 +586,9 @@ export default function StudentDashboard() {
                     <p className="text-sm text-gray-700 mb-3">
                       💡 <strong>Personalized Reminders for You:</strong>
                     </p>
-                    <ul className="text-sm text-gray-600 space-y-2">
-                      <li>
-                        ✅ You have{' '}
-                        {assignments.filter(a => a.status === 'pending').length}{' '}
-                        pending assignments
-                      </li>
-                      <li>
-                        🧪 {quizzes.filter(q => new Date(q.end_time) > new Date()).length}{' '}
-                        active quizzes to complete
-                      </li>
-                      <li>
-                        📚 {'Don\'t forget to review ' + yearName + ' notes'}
-                      </li>
-                      <li>
-                        🎯 Your attendance is{' '}
-                        {attendance?.attendance_percentage.toFixed(1)}% - Keep it
-                        above 75%!
-                      </li>
-                      <li>📖 New study materials uploaded for your subjects</li>
-                    </ul>
+                    <div className="text-sm text-gray-600 whitespace-pre-line">
+                      {aiInsights || "Loading your personalized insights..."}
+                    </div>
                   </div>
                   <input
                     type="text"

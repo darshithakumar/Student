@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import auth_router, student_router, admin_router, attendance_router, content_router, assignment_router, quiz_router
+from .routers import auth_router, student_router, admin_router, attendance_router, content_router, assignment_router, quiz_router, ai_router
+from fastapi import WebSocket, WebSocketDisconnect
+from app.core.websockets import manager
 
 app = FastAPI(
     title="College Academic Portal",
@@ -25,6 +27,17 @@ app.include_router(attendance_router, prefix="/api/attendance")
 app.include_router(content_router, prefix="/api/content")
 app.include_router(assignment_router, prefix="/api/assignments")
 app.include_router(quiz_router, prefix="/api/quizzes")
+app.include_router(ai_router)
+
+@app.websocket("/ws/notifications/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, user_id: str):
+    await manager.connect(websocket, user_id)
+    try:
+        while True:
+            # Keep connection alive
+            data = await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(user_id)
 
 @app.get("/")
 def root():

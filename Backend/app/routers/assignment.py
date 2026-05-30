@@ -17,6 +17,7 @@ from app.models import (
 from app.schemas import AssignmentCreate, StudentAssignmentResponse
 from app.core.security import verify_token
 from app.services.academic_service import AcademicService
+from app.core.websockets import manager
 
 router = APIRouter(tags=["assignments"])
 
@@ -124,6 +125,13 @@ async def create_assignment(
     )
     db.add(log_entry)
     db.commit()
+    
+    # WebSocket broadcast
+    await manager.broadcast({
+        "type": "notification",
+        "content_type": "assignment",
+        "message": f"New assignment created: {new_assignment.title}"
+    })
     
     return {
         "message": "Assignment created successfully",

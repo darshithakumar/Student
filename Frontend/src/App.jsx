@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useAuthStore } from './store/authStore'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
-import StudentDashboard from './pages/student/SimpleStudentDashboard'
+import StudentDashboard from './pages/student/CompleteStudentDashboard'
 import AdminDashboard from './pages/admin/CompleteAdminDashboard'
 import { authAPI } from './api/client'
 
@@ -28,6 +28,20 @@ function App() {
         .catch(() => {
           localStorage.removeItem('token')
         })
+        
+      // Initialize WebSocket connection
+      const ws = new WebSocket(`ws://localhost:8000/ws/${token}`)
+      
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        if (data.type === 'notification') {
+          alert(`New Notification: ${data.message}`)
+        }
+      }
+      
+      return () => {
+        ws.close()
+      }
     }
   }, [setUser, setToken])
 

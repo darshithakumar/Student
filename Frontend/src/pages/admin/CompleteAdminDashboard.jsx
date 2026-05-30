@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import api from '../../api/client'
+import api, { adminAPI, aiAPI } from '../../api/client'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
@@ -15,6 +15,7 @@ export default function AdminDashboard() {
   const [showNewQuiz, setShowNewQuiz] = useState(false)
   const [showAttendance, setShowAttendance] = useState(false)
   const [showUploadContent, setShowUploadContent] = useState(false)
+  const [aiInsights, setAiInsights] = useState('')
 
   // Form states
   const [newAssignment, setNewAssignment] = useState({
@@ -63,6 +64,14 @@ export default function AdminDashboard() {
         // Get all students
         const studentsRes = await api.get('/admin/students')
         setStudents(studentsRes.data.students || [])
+
+        // Get AI insights
+        try {
+          const aiRes = await aiAPI.getAdminAssistant()
+          setAiInsights(aiRes.data.message)
+        } catch (e) {
+          console.error('Error fetching AI insights:', e)
+        }
 
         setLoading(false)
       } catch (error) {
@@ -146,6 +155,18 @@ export default function AdminDashboard() {
     }
   }
 
+  const handleOverrideYear = async (studentId, year) => {
+    try {
+      await adminAPI.overrideStudentYear(studentId, parseInt(year))
+      alert('Student year overridden successfully!')
+      // Refresh students
+      const studentsRes = await api.get('/admin/students')
+      setStudents(studentsRes.data.students || [])
+    } catch (error) {
+      console.error('Error overriding year:', error)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -158,45 +179,48 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-slate-50 relative overflow-hidden">
+      {/* Decorative background blur */}
+      <div className="absolute top-0 right-0 w-full h-96 bg-gradient-to-bl from-blue-600/10 to-indigo-600/10 blur-3xl -z-10 rounded-b-full"></div>
+
       {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between items-center">
+      <header className="glass-panel sticky top-0 z-50 rounded-none border-b border-white/40 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">
               Admin Dashboard 👨‍💼
             </h1>
-            <p className="text-gray-600 mt-1">Manage students, content, and assessments</p>
+            <p className="text-slate-500 mt-1 font-medium text-sm tracking-wide">Manage students, content, and assessments</p>
           </div>
           <button
             onClick={() => {
               localStorage.clear()
               navigate('/login')
             }}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+            className="btn-secondary text-sm px-4 py-2"
           >
-            Logout
+            Sign Out
           </button>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 py-8 relative z-10">
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">Total Students</p>
+                <p className="text-slate-500 font-semibold text-xs tracking-wider uppercase mb-1">Total Students</p>
                 <p className="text-3xl font-bold text-blue-600">{students.length}</p>
               </div>
               <div className="text-4xl">👥</div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">Assignments</p>
+                <p className="text-slate-500 font-semibold text-xs tracking-wider uppercase mb-1">Assignments</p>
                 <p className="text-3xl font-bold text-orange-600">
                   {assignments.length}
                 </p>
@@ -205,20 +229,20 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">Quizzes</p>
+                <p className="text-slate-500 font-semibold text-xs tracking-wider uppercase mb-1">Quizzes</p>
                 <p className="text-3xl font-bold text-purple-600">{quizzes.length}</p>
               </div>
               <div className="text-4xl">🧪</div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">Avg Class Strength</p>
+                <p className="text-slate-500 font-semibold text-xs tracking-wider uppercase mb-1">Avg Class Strength</p>
                 <p className="text-3xl font-bold text-green-600">
                   {stats?.average_attendance || 0}
                 </p>
@@ -322,24 +346,9 @@ export default function AdminDashboard() {
                   <p className="text-sm text-gray-700 font-semibold mb-3">
                     📊 Insights & Suggestions:
                   </p>
-                  <ul className="text-sm text-gray-600 space-y-2">
-                    <li>
-                      ⚠️ {students.filter(s => s.attendance < 75).length} students
-                      have low attendance
-                    </li>
-                    <li>
-                      📝 {assignments.filter(a => a.status === 'pending').length}{' '}
-                      assignments pending submission
-                    </li>
-                    <li>
-                      🧪 Create more quizzes to improve assessment coverage
-                    </li>
-                    <li>
-                      📚 Update {Math.random() > 0.5 ? '2nd Year' : '3rd Year'}{' '}
-                      syllabus materials
-                    </li>
-                    <li>💡 Consider uploading practice papers for exams</li>
-                  </ul>
+                  <div className="text-sm text-gray-600 whitespace-pre-line">
+                    {aiInsights || "No insights available."}
+                  </div>
                 </div>
                 <input
                   type="text"
@@ -369,6 +378,9 @@ export default function AdminDashboard() {
                         Department
                       </th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
+                        Year Override
+                      </th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
                         Attendance
                       </th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
@@ -390,6 +402,20 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-6 py-3 text-sm text-gray-600">
                           {student.department}
+                        </td>
+                        <td className="px-6 py-3 text-sm">
+                          <input
+                            type="number"
+                            defaultValue={student.current_year}
+                            min={1}
+                            max={4}
+                            className="w-16 px-2 py-1 border rounded"
+                            onBlur={(e) => {
+                              if (e.target.value != student.current_year) {
+                                handleOverrideYear(student.user_id, e.target.value)
+                              }
+                            }}
+                          />
                         </td>
                         <td className="px-6 py-3 text-sm">
                           <span

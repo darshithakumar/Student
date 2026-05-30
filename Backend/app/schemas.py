@@ -55,6 +55,9 @@ class StudentResponse(StudentBase):
     class Config:
         from_attributes = True
 
+class StudentYearOverrideUpdate(BaseModel):
+    current_year_override: Optional[int]
+
 class StudentProgressResponse(BaseModel):
     id: UUID
     student_id: UUID

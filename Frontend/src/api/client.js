@@ -63,6 +63,7 @@ export const adminAPI = {
   gradeAssignment: (assignmentId, data) => api.post(`/admin/assignments/${assignmentId}/grade`, data),
   getAdminLogs: (params) => api.get('/admin/logs', { params }),
   getAttendanceReport: (params) => api.get('/admin/analytics/attendance-report', { params }),
+  overrideStudentYear: (studentId, year) => api.put(`/admin/students/${studentId}/override-year`, { current_year_override: year }),
 }
 
 export const contentAPI = {
@@ -81,6 +82,11 @@ export const quizAPI = {
   create: (data) => api.post('/quizzes/create', data),
   addQuestion: (quizId, data) => api.post(`/quizzes/${quizId}/add-question`, data),
   getResponses: (quizId) => api.get(`/quizzes/${quizId}/responses`),
+}
+
+export const aiAPI = {
+  getStudentAssistant: () => api.get('/ai/student-assistant'),
+  getAdminAssistant: () => api.get('/ai/admin-assistant'),
 }
 
 export default api

@@ -17,7 +17,7 @@ from app.models import (
 )
 from app.schemas import (
     AttendanceCreate, StudentMarksCreate, BulkAttendanceUpdate,
-    BulkMarksUpdate, AdminLogResponse
+    BulkMarksUpdate, AdminLogResponse, StudentYearOverrideUpdate
 )
 from app.core.security import verify_token
 from app.services.academic_service import AcademicService
@@ -143,6 +143,45 @@ async def get_student_details(
             "attendance_percentage": attendance.attendance_percentage
         },
         "marks": marks
+    }
+
+@router.put("/students/{student_id}/override-year")
+async def override_student_year(
+    student_id: UUID,
+    override_data: StudentYearOverrideUpdate,
+    admin: User = Depends(verify_admin),
+    db: Session = Depends(get_db)
+):
+    """Override the computed academic year for a student"""
+    student = db.query(Student).filter(Student.user_id == student_id).first()
+    
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Student not found"
+        )
+    
+    student.current_year_override = override_data.current_year_override
+    db.commit()
+    db.refresh(student)
+    
+    # Log the action
+    log_entry = AdminLog(
+        admin_id=admin.id,
+        action="update",
+        entity_type="student",
+        entity_id=student.user_id,
+        changes={
+            "field": "current_year_override",
+            "new_value": override_data.current_year_override
+        }
+    )
+    db.add(log_entry)
+    db.commit()
+    
+    return {
+        "message": "Student year overridden successfully",
+        "current_year_override": student.current_year_override
     }
 
 # ==================== ATTENDANCE MANAGEMENT ====================

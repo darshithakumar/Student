@@ -161,7 +161,6 @@ def seed_data():
                 
                 # Create student
                 student = Student(
-                    id=str(uuid.uuid4()),
                     user_id=user_id,
                     name=student_data["name"],
                     batch_year=student_data["batch_year"],

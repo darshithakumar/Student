@@ -14,6 +14,7 @@ from app.models import AcademicContent, AdminLog, User
 from app.schemas import AcademicContentCreate, AcademicContentResponse
 from app.core.security import verify_token
 from app.services.academic_service import AcademicService
+from app.core.websockets import manager
 
 router = APIRouter(tags=["content-management"])
 
@@ -81,6 +82,13 @@ async def upload_content(
     )
     db.add(log_entry)
     db.commit()
+    
+    # WebSocket broadcast
+    await manager.broadcast({
+        "type": "notification",
+        "content_type": new_content.content_type,
+        "message": f"New {new_content.content_type} uploaded: {new_content.title}"
+    })
     
     return new_content
 
