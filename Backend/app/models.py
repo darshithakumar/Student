@@ -64,7 +64,7 @@ class AcademicContent(Base):
     __tablename__ = "academic_content"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    academic_year_id = Column(UUID(as_uuid=True), ForeignKey("academic_years.id"), nullable=False)
+    academic_year_id = Column(UUID(as_uuid=True), ForeignKey("academic_years.id"), nullable=True)
     subject_name = Column(String, nullable=False)
     content_type = Column(String, nullable=False)  # "notes", "ppt", "textbook", "pyq", "demo_test"
     title = Column(String, nullable=False)
@@ -111,7 +111,7 @@ class Assignment(Base):
     __tablename__ = "assignments"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    academic_year_id = Column(UUID(as_uuid=True), ForeignKey("academic_years.id"), nullable=False)
+    academic_year_id = Column(UUID(as_uuid=True), ForeignKey("academic_years.id"), nullable=True)
     subject_name = Column(String, nullable=False)
     title = Column(String, nullable=False)
     description = Column(Text)
@@ -146,7 +146,7 @@ class Quiz(Base):
     __tablename__ = "quizzes"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    academic_year_id = Column(UUID(as_uuid=True), ForeignKey("academic_years.id"), nullable=False)
+    academic_year_id = Column(UUID(as_uuid=True), ForeignKey("academic_years.id"), nullable=True)
     subject_name = Column(String, nullable=False)
     title = Column(String, nullable=False)
     description = Column(Text)

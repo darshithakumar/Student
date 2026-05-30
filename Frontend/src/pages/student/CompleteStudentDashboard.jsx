@@ -41,6 +41,11 @@ export default function StudentDashboard() {
         const dashboardRes = await api.get('/student/dashboard')
         const studentData = dashboardRes.data
         setStudent(studentData)
+        
+        // Set progress from dashboard data
+        if (studentData.progress) {
+          setProgress(studentData.progress)
+        }
 
         // Get assignments for student
         const assignmentsRes = await api.get('/student/assignments')
@@ -84,10 +89,16 @@ export default function StudentDashboard() {
     if (newTodo.trim()) {
       try {
         const response = await api.post('/student/todos', {
-          title: newTodo,
-          completed: false,
+          task_title: newTodo,
+          priority: 'medium',
         })
-        setTodos([...todos, response.data])
+        // Backend returns {id, task, message} - normalize to match list format
+        setTodos([...todos, { 
+          id: response.data.id, 
+          title: response.data.task || newTodo,
+          completed: false,
+          created_at: new Date().toISOString()
+        }])
         setNewTodo('')
       } catch (error) {
         console.error('Error adding todo:', error)
@@ -99,9 +110,13 @@ export default function StudentDashboard() {
     try {
       const todo = todos.find(t => t.id === todoId)
       const response = await api.patch(`/student/todos/${todoId}`, {
-        completed: !todo.completed,
+        is_completed: !todo.completed,
       })
-      setTodos(todos.map(t => (t.id === todoId ? response.data : t)))
+      // Backend PUT returns full object with 'completed' field
+      setTodos(todos.map(t => (t.id === todoId ? { 
+        ...t, 
+        completed: response.data.completed !== undefined ? response.data.completed : !todo.completed 
+      } : t)))
     } catch (error) {
       console.error('Error updating todo:', error)
     }
@@ -147,7 +162,7 @@ export default function StudentDashboard() {
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">
-              Welcome, <span className="text-gradient">{student.name}</span> 👋
+              Welcome, <span className="text-gradient">{student.name}</span> 
             </h1>
             <p className="text-slate-500 mt-1 font-medium text-sm tracking-wide">
               {student.department} • {yearName} • Batch {student.batch_year}
@@ -177,7 +192,7 @@ export default function StudentDashboard() {
                   {attendance?.attendance_percentage.toFixed(1)}%
                 </p>
               </div>
-              <div className="text-4xl">📊</div>
+              <div className="text-4xl"></div>
             </div>
           </div>
 
@@ -189,7 +204,7 @@ export default function StudentDashboard() {
                   {progress?.gpa.toFixed(2)}
                 </p>
               </div>
-              <div className="text-4xl">⭐</div>
+              <div className="text-4xl"></div>
             </div>
           </div>
 
@@ -201,7 +216,7 @@ export default function StudentDashboard() {
                   {progress?.total_assignments_completed}
                 </p>
               </div>
-              <div className="text-4xl">✅</div>
+              <div className="text-4xl"></div>
             </div>
           </div>
 
@@ -213,7 +228,7 @@ export default function StudentDashboard() {
                   {progress?.total_quizzes_attempted}
                 </p>
               </div>
-              <div className="text-4xl">🧠</div>
+              <div className="text-4xl"></div>
             </div>
           </div>
         </div>
@@ -222,13 +237,13 @@ export default function StudentDashboard() {
         <div className="bg-white rounded-lg shadow mb-8">
           <div className="flex flex-wrap gap-2 p-4 border-b">
             {[
-              { id: 'overview', label: '📋 Overview', icon: '📋' },
-              { id: 'materials', label: '📚 Study Materials', icon: '📚' },
-              { id: 'assignments', label: '✍️ My Assignments', icon: '✍️' },
-              { id: 'quizzes', label: '🧪 My Quizzes', icon: '🧪' },
-              { id: 'attendance', label: '📍 Attendance', icon: '📍' },
-              { id: 'marks', label: '📈 Marks', icon: '📈' },
-              { id: 'todos', label: '✓ My Tasks', icon: '✓' },
+              { id: 'overview', label: 'Overview', icon: '' },
+              { id: 'materials', label: 'Study Materials', icon: '' },
+              { id: 'assignments', label: 'My Assignments', icon: '' },
+              { id: 'quizzes', label: 'My Quizzes', icon: '' },
+              { id: 'attendance', label: 'Attendance', icon: '' },
+              { id: 'marks', label: 'Marks', icon: '' },
+              { id: 'todos', label: 'My Tasks', icon: '' },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -252,7 +267,7 @@ export default function StudentDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Notifications */}
               <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-bold mb-4">📬 Notifications</h2>
+                <h2 className="text-xl font-bold mb-4">Notifications</h2>
                 {notifications.length === 0 ? (
                   <p className="text-gray-500">No notifications</p>
                 ) : (
@@ -277,7 +292,7 @@ export default function StudentDashboard() {
 
               {/* Quick Stats */}
               <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-bold mb-4">⚡ Quick Stats</h2>
+                <h2 className="text-xl font-bold mb-4">Quick Stats</h2>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center p-3 bg-amber-50 rounded">
                     <span className="text-sm text-gray-700">Pending Assignments</span>
@@ -307,7 +322,7 @@ export default function StudentDashboard() {
             <div>
               <div className="mb-6">
                 <h2 className="text-2xl font-bold mb-4">
-                  📚 {yearName} Study Materials
+                  {yearName} Study Materials
                 </h2>
                 <p className="text-gray-600 mb-6">
                   All materials matched to your current academic level
@@ -322,12 +337,12 @@ export default function StudentDashboard() {
                       className="bg-white rounded-lg shadow hover:shadow-lg transition p-6 cursor-pointer"
                     >
                       <div className="text-4xl mb-3">
-                        {type === 'Notes' && '📝'}
+                        {type === 'Notes' && ''}
                         {type === 'PPT' && '🎥'}
                         {type === 'Textbooks' && '📖'}
                         {type === 'PYQs' && '❓'}
-                        {type === 'Demo Test' && '🧪'}
-                        {type === 'Solutions' && '✅'}
+                        {type === 'Demo Test' && ''}
+                        {type === 'Solutions' && ''}
                       </div>
                       <h3 className="text-lg font-bold mb-2">{type}</h3>
                       <p className="text-sm text-gray-600 mb-4">
@@ -371,7 +386,7 @@ export default function StudentDashboard() {
           {/* Assignments Tab */}
           {activeTab === 'assignments' && (
             <div>
-              <h2 className="text-2xl font-bold mb-6">✍️ My Assignments</h2>
+              <h2 className="text-2xl font-bold mb-6">My Assignments</h2>
               <div className="space-y-4">
                 {assignments.length === 0 ? (
                   <p className="text-gray-500 text-center py-8">
@@ -421,7 +436,7 @@ export default function StudentDashboard() {
           {/* Quizzes Tab */}
           {activeTab === 'quizzes' && (
             <div>
-              <h2 className="text-2xl font-bold mb-6">🧪 My Quizzes</h2>
+              <h2 className="text-2xl font-bold mb-6">My Quizzes</h2>
               <div className="space-y-4">
                 {quizzes.length === 0 ? (
                   <p className="text-gray-500 text-center py-8">No quizzes yet</p>
@@ -461,7 +476,7 @@ export default function StudentDashboard() {
           {/* Attendance Tab */}
           {activeTab === 'attendance' && (
             <div>
-              <h2 className="text-2xl font-bold mb-6">📍 Attendance Records</h2>
+              <h2 className="text-2xl font-bold mb-6">Attendance Records</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div className="bg-white rounded-lg shadow p-6">
                   <p className="text-gray-600 text-sm mb-2">Overall Attendance</p>
@@ -497,7 +512,7 @@ export default function StudentDashboard() {
                     }`}
                   >
                     {attendance?.attendance_percentage >= 75
-                      ? '✅ Good'
+                      ? 'Good'
                       : '⚠️ Low'}
                   </p>
                 </div>
@@ -508,7 +523,7 @@ export default function StudentDashboard() {
           {/* Marks Tab */}
           {activeTab === 'marks' && (
             <div>
-              <h2 className="text-2xl font-bold mb-6">📈 Consolidated Marks</h2>
+              <h2 className="text-2xl font-bold mb-6">Consolidated Marks</h2>
               <div className="bg-white rounded-lg shadow overflow-hidden">
                 <table className="w-full">
                   <thead className="bg-gray-100 border-b">
@@ -567,24 +582,24 @@ export default function StudentDashboard() {
           {/* Tasks/Todos Tab */}
           {activeTab === 'todos' && (
             <div>
-              <h2 className="text-2xl font-bold mb-6">✓ My Tasks & To-Do List</h2>
+              <h2 className="text-2xl font-bold mb-6">My Tasks & To-Do List</h2>
 
               {/* AI Assistant */}
               <button
                 onClick={() => setShowAiAssistant(!showAiAssistant)}
                 className="mb-6 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg transition flex items-center gap-2"
               >
-                🤖 {showAiAssistant ? 'Hide' : 'Open'} AI Assistant
+                {showAiAssistant ? 'Hide' : 'Open'} AI Assistant
               </button>
 
               {showAiAssistant && (
                 <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg shadow p-6 mb-6 border-l-4 border-purple-600">
                   <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
-                    🤖 AI Study Assistant
+                    AI Study Assistant
                   </h3>
                   <div className="bg-white rounded p-4 mb-4 h-48 overflow-y-auto">
                     <p className="text-sm text-gray-700 mb-3">
-                      💡 <strong>Personalized Reminders for You:</strong>
+                      <strong>Personalized Reminders for You:</strong>
                     </p>
                     <div className="text-sm text-gray-600 whitespace-pre-line">
                       {aiInsights || "Loading your personalized insights..."}
@@ -647,7 +662,7 @@ export default function StudentDashboard() {
                               : 'text-gray-700'
                           }`}
                         >
-                          {todo.title}
+                          {todo.task || todo.title}
                         </span>
                         <span className="text-xs text-gray-500">
                           {new Date(

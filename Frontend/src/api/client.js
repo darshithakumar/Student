@@ -87,6 +87,7 @@ export const quizAPI = {
 export const aiAPI = {
   getStudentAssistant: () => api.get('/ai/student-assistant'),
   getAdminAssistant: () => api.get('/ai/admin-assistant'),
+  chat: (query) => api.post('/ai/chat', { query }),
 }
 
 export default api

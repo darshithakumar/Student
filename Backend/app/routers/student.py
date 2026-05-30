@@ -114,22 +114,32 @@ async def get_my_assignments(
     current_user: User = Depends(verify_student),
     db: Session = Depends(get_db)
 ):
-    """Get all assignments for the student"""
-    pending_assignments = AcademicService.get_pending_assignments(db, current_user.id)
+    """Get all assignments for the student with full assignment details"""
+    pending_assignments = db.query(StudentAssignment).filter(
+        StudentAssignment.student_id == current_user.id
+    ).all()
     
-    return {
-        "assignments": [
-            {
+    result = []
+    for a in pending_assignments:
+        assignment = db.query(Assignment).filter(Assignment.id == a.assignment_id).first()
+        if assignment:
+            result.append({
                 "id": str(a.id),
                 "assignment_id": str(a.assignment_id),
+                "title": assignment.title,
+                "subject_name": assignment.subject_name,
+                "description": assignment.description,
+                "due_date": assignment.due_date.isoformat() if assignment.due_date else None,
+                "max_marks": assignment.max_marks,
                 "status": a.status,
                 "submission_date": a.submission_date.isoformat() if a.submission_date else None,
                 "marks_obtained": a.marks_obtained,
                 "feedback": a.feedback
-            }
-            for a in pending_assignments
-        ],
-        "total": len(pending_assignments)
+            })
+    
+    return {
+        "assignments": result,
+        "total": len(result)
     }
 
 @router.post("/assignments/{assignment_id}/submit")
@@ -178,22 +188,32 @@ async def get_my_quizzes(
     current_user: User = Depends(verify_student),
     db: Session = Depends(get_db)
 ):
-    """Get all quizzes for the student"""
-    pending_quizzes = AcademicService.get_pending_quizzes(db, current_user.id)
+    """Get all quizzes for the student with full quiz details"""
+    pending_quizzes = db.query(StudentQuiz).filter(
+        StudentQuiz.student_id == current_user.id
+    ).all()
+    
+    result = []
+    for sq in pending_quizzes:
+        quiz = db.query(Quiz).filter(Quiz.id == sq.quiz_id).first()
+        if quiz:
+            result.append({
+                "id": str(sq.id),
+                "quiz_id": str(sq.quiz_id),
+                "title": quiz.title,
+                "subject_name": quiz.subject_name,
+                "description": quiz.description,
+                "duration_minutes": quiz.duration_minutes,
+                "max_marks": quiz.max_marks,
+                "start_time": quiz.start_time.isoformat() if quiz.start_time else None,
+                "end_time": quiz.end_time.isoformat() if quiz.end_time else None,
+                "status": sq.status,
+                "marks_obtained": sq.marks_obtained
+            })
     
     return {
-        "quizzes": [
-            {
-                "id": str(q.id),
-                "quiz_id": str(q.quiz_id),
-                "status": q.status,
-                "marks_obtained": q.marks_obtained,
-                "start_time": q.start_time.isoformat() if q.start_time else None,
-                "end_time": q.end_time.isoformat() if q.end_time else None
-            }
-            for q in pending_quizzes
-        ],
-        "total": len(pending_quizzes)
+        "quizzes": result,
+        "total": len(result)
     }
 
 @router.get("/attendance")
@@ -353,7 +373,26 @@ async def update_todo(
     db.commit()
     db.refresh(todo)
     
-    return {"message": "TODO updated successfully", "todo_id": str(todo.id)}
+    return {
+        "id": str(todo.id),
+        "task": todo.task_title,
+        "description": todo.description,
+        "due_date": todo.due_date.isoformat() if todo.due_date else None,
+        "priority": todo.priority,
+        "category": todo.category,
+        "completed": todo.is_completed,
+        "completed_at": todo.completed_at.isoformat() if todo.completed_at else None
+    }
+
+@router.patch("/todos/{todo_id}")
+async def patch_todo(
+    todo_id: UUID,
+    todo_data: TodoReminderUpdate,
+    current_user: User = Depends(verify_student),
+    db: Session = Depends(get_db)
+):
+    """Partially update a TODO reminder (PATCH alias for PUT)"""
+    return await update_todo(todo_id, todo_data, current_user, db)
 
 @router.delete("/todos/{todo_id}")
 async def delete_todo(

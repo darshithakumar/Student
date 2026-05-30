@@ -16,7 +16,18 @@ from app.core.security import verify_token
 from app.services.academic_service import AcademicService
 from app.core.websockets import manager
 
+from pydantic import BaseModel
+from typing import Optional
+
 router = APIRouter(tags=["content-management"])
+
+class SimpleContentUpload(BaseModel):
+    subject_name: str
+    content_type: str
+    title: str
+    year: int = 1
+    file_url: str
+    description: Optional[str] = None
 
 def get_db():
     db = SessionLocal()
@@ -36,9 +47,9 @@ async def verify_admin(token: str = Depends(verify_token), db: Session = Depends
         )
     return user
 
-@router.post("/content/upload", response_model=AcademicContentResponse)
+@router.post("/upload")
 async def upload_content(
-    content_data: AcademicContentCreate,
+    content_data: SimpleContentUpload,
     admin: User = Depends(verify_admin),
     db: Session = Depends(get_db)
 ):
@@ -55,7 +66,6 @@ async def upload_content(
     The content is immediately available to students of that year
     """
     new_content = AcademicContent(
-        academic_year_id=content_data.academic_year_id,
         subject_name=content_data.subject_name,
         content_type=content_data.content_type,
         title=content_data.title,
@@ -90,9 +100,15 @@ async def upload_content(
         "message": f"New {new_content.content_type} uploaded: {new_content.title}"
     })
     
-    return new_content
+    return {
+        "id": str(new_content.id),
+        "subject_name": new_content.subject_name,
+        "content_type": new_content.content_type,
+        "title": new_content.title,
+        "file_url": new_content.file_url
+    }
 
-@router.get("/content/{content_id}", response_model=AcademicContentResponse)
+@router.get("/{content_id}")
 async def get_content(
     content_id: UUID,
     db: Session = Depends(get_db)
@@ -108,9 +124,15 @@ async def get_content(
             detail="Content not found"
         )
     
-    return content
+    return {
+        "id": str(content.id),
+        "subject_name": content.subject_name,
+        "content_type": content.content_type,
+        "title": content.title,
+        "file_url": content.file_url
+    }
 
-@router.put("/content/{content_id}", response_model=AcademicContentResponse)
+@router.put("/{content_id}")
 async def update_content(
     content_id: UUID,
     content_data: AcademicContentCreate,
@@ -167,9 +189,9 @@ async def update_content(
     db.add(log_entry)
     db.commit()
     
-    return content
+    return {"message": "Content updated successfully"}
 
-@router.delete("/content/{content_id}")
+@router.delete("/{content_id}")
 async def delete_content(
     content_id: UUID,
     admin: User = Depends(verify_admin),

@@ -183,17 +183,22 @@ def login(data: LoginSchema, db: Session = Depends(get_db)):
             detail=f"Login error: {str(e)}"
         )
 
+from pydantic import BaseModel as PydanticBase
+
+class ValidateTokenRequest(PydanticBase):
+    token: str
+
 @router.post("/validate-token")
-def validate_token(token: str):
+def validate_token(request: ValidateTokenRequest):
     """
     Validate a JWT token (useful for frontend token refresh checks)
+    Accepts JSON body: {"token": "<jwt_token>"}
     """
     try:
-        from app.core.security import verify_token
         from jose import JWTError, jwt
         from app.core.config import SECRET_KEY, ALGORITHM
         
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(request.token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
         
         if user_id is None:

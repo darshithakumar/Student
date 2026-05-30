@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import api, { adminAPI, aiAPI } from '../../api/client'
+import api, { adminAPI, aiAPI, quizAPI } from '../../api/client'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
@@ -16,6 +16,7 @@ export default function AdminDashboard() {
   const [showAttendance, setShowAttendance] = useState(false)
   const [showUploadContent, setShowUploadContent] = useState(false)
   const [aiInsights, setAiInsights] = useState('')
+  const [aiQuery, setAiQuery] = useState("")
 
   // Form states
   const [newAssignment, setNewAssignment] = useState({
@@ -97,6 +98,7 @@ export default function AdminDashboard() {
       setShowNewAssignment(false)
     } catch (error) {
       console.error('Error creating assignment:', error)
+      alert('Error creating assignment: ' + (error.response?.data?.detail || error.message))
     }
   }
 
@@ -114,12 +116,26 @@ export default function AdminDashboard() {
       setShowNewQuiz(false)
     } catch (error) {
       console.error('Error creating quiz:', error)
+      alert('Error creating quiz: ' + (error.response?.data?.detail || error.message))
+    }
+  }
+
+  
+  const handleAiChat = async (e) => {
+    if (e.key === 'Enter' && aiQuery.trim()) {
+      try {
+        const res = await aiAPI.chat(aiQuery)
+        setAiInsights(res.data.message)
+        setAiQuery('')
+      } catch (error) {
+        console.error(error)
+      }
     }
   }
 
   const handleUploadContent = async () => {
     try {
-      const response = await api.post('/admin/content', newContent)
+      const response = await api.post('/content/upload', newContent)
       setNewContent({
         subject_name: '',
         content_type: '',
@@ -137,9 +153,10 @@ export default function AdminDashboard() {
 
   const handleMarkAttendance = async () => {
     try {
-      for (const student of attendance.students.filter(s => s.present)) {
+      // attendance.students is an array of student IDs that are checked (present)
+      for (const studentId of attendance.students) {
         await api.post('/admin/attendance', {
-          student_id: student.id,
+          student_id: studentId,
           date: attendance.date,
           present: true,
         })
@@ -152,6 +169,7 @@ export default function AdminDashboard() {
       alert('Attendance marked successfully!')
     } catch (error) {
       console.error('Error marking attendance:', error)
+      alert('Error marking attendance: ' + (error.response?.data?.detail || error.message))
     }
   }
 
@@ -213,7 +231,7 @@ export default function AdminDashboard() {
                 <p className="text-slate-500 font-semibold text-xs tracking-wider uppercase mb-1">Total Students</p>
                 <p className="text-3xl font-bold text-blue-600">{students.length}</p>
               </div>
-              <div className="text-4xl">👥</div>
+              <div className="text-4xl"></div>
             </div>
           </div>
 
@@ -225,7 +243,7 @@ export default function AdminDashboard() {
                   {assignments.length}
                 </p>
               </div>
-              <div className="text-4xl">📝</div>
+              <div className="text-4xl"></div>
             </div>
           </div>
 
@@ -235,7 +253,7 @@ export default function AdminDashboard() {
                 <p className="text-slate-500 font-semibold text-xs tracking-wider uppercase mb-1">Quizzes</p>
                 <p className="text-3xl font-bold text-purple-600">{quizzes.length}</p>
               </div>
-              <div className="text-4xl">🧪</div>
+              <div className="text-4xl"></div>
             </div>
           </div>
 
@@ -247,7 +265,7 @@ export default function AdminDashboard() {
                   {stats?.average_attendance || 0}
                 </p>
               </div>
-              <div className="text-4xl">📊</div>
+              <div className="text-4xl"></div>
             </div>
           </div>
         </div>
@@ -256,12 +274,12 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-lg shadow mb-8">
           <div className="flex flex-wrap gap-2 p-4 border-b">
             {[
-              { id: 'overview', label: '📊 Overview', icon: '📊' },
-              { id: 'students', label: '👥 Students', icon: '👥' },
-              { id: 'assignments', label: '📝 Assignments', icon: '📝' },
-              { id: 'quizzes', label: '🧪 Quizzes', icon: '🧪' },
-              { id: 'attendance', label: '📍 Attendance', icon: '📍' },
-              { id: 'content', label: '📚 Upload Content', icon: '📚' },
+              { id: 'overview', label: 'Overview', icon: '' },
+              { id: 'students', label: 'Students', icon: '' },
+              { id: 'assignments', label: 'Assignments', icon: '' },
+              { id: 'quizzes', label: 'Quizzes', icon: '' },
+              { id: 'attendance', label: 'Attendance', icon: '' },
+              { id: 'content', label: 'Upload Content', icon: '' },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -285,14 +303,14 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Recent Activities */}
               <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-bold mb-4">📈 Quick Actions</h2>
+                <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
                 <div className="space-y-3">
                   <button
                     onClick={() => setShowNewAssignment(true)}
                     className="w-full p-4 text-left bg-orange-50 border border-orange-200 hover:bg-orange-100 rounded-lg transition"
                   >
                     <div className="font-semibold text-orange-900">
-                      ➕ Create Assignment
+                      Create Assignment
                     </div>
                     <div className="text-sm text-orange-700">
                       Set new assignment for students
@@ -304,7 +322,7 @@ export default function AdminDashboard() {
                     className="w-full p-4 text-left bg-purple-50 border border-purple-200 hover:bg-purple-100 rounded-lg transition"
                   >
                     <div className="font-semibold text-purple-900">
-                      ➕ Create Quiz
+                      Create Quiz
                     </div>
                     <div className="text-sm text-purple-700">
                       Create new quiz for assessment
@@ -316,7 +334,7 @@ export default function AdminDashboard() {
                     className="w-full p-4 text-left bg-green-50 border border-green-200 hover:bg-green-100 rounded-lg transition"
                   >
                     <div className="font-semibold text-green-900">
-                      ✅ Mark Attendance
+                      Mark Attendance
                     </div>
                     <div className="text-sm text-green-700">
                       Record attendance for today
@@ -328,7 +346,7 @@ export default function AdminDashboard() {
                     className="w-full p-4 text-left bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-lg transition"
                   >
                     <div className="font-semibold text-blue-900">
-                      📤 Upload Content
+                      Upload Content
                     </div>
                     <div className="text-sm text-blue-700">
                       Upload notes, PPT, textbooks
@@ -340,21 +358,24 @@ export default function AdminDashboard() {
               {/* AI Assistant for Admin */}
               <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg shadow p-6 border-l-4 border-indigo-600">
                 <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                  🤖 Admin AI Assistant
+                  Admin AI Assistant
                 </h2>
                 <div className="bg-white rounded p-4 mb-4 h-48 overflow-y-auto">
                   <p className="text-sm text-gray-700 font-semibold mb-3">
-                    📊 Insights & Suggestions:
+                    Insights & Suggestions:
                   </p>
                   <div className="text-sm text-gray-600 whitespace-pre-line">
                     {aiInsights || "No insights available."}
                   </div>
                 </div>
                 <input
-                  type="text"
-                  placeholder="Ask for student insights, suggestions..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-600"
-                />
+                    type="text"
+                    placeholder="Ask for student insights, suggestions... (Press Enter)"
+                    value={aiQuery}
+                    onChange={(e) => setAiQuery(e.target.value)}
+                    onKeyDown={handleAiChat}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-600"
+                  />
               </div>
             </div>
           )}
@@ -362,7 +383,7 @@ export default function AdminDashboard() {
           {/* Students Tab */}
           {activeTab === 'students' && (
             <div>
-              <h2 className="text-2xl font-bold mb-6">👥 Student List & Progress</h2>
+              <h2 className="text-2xl font-bold mb-6">Student List & Progress</h2>
 
               <div className="bg-white rounded-lg shadow overflow-hidden">
                 <table className="w-full">
@@ -393,7 +414,7 @@ export default function AdminDashboard() {
                   </thead>
                   <tbody>
                     {students.map(student => (
-                      <tr key={student.id} className="border-b hover:bg-gray-50">
+                      <tr key={student.user_id} className="border-b hover:bg-gray-50">
                         <td className="px-6 py-3 text-sm text-gray-700">
                           {student.name}
                         </td>
@@ -490,17 +511,17 @@ export default function AdminDashboard() {
                       <div className="mt-6">
                         <h4 className="font-bold mb-3">Suggestions</h4>
                         <ul className="text-sm text-gray-600 space-y-2">
-                          <li>✓ Good GPA - Maintain this performance</li>
+                          <li>Good GPA - Maintain this performance</li>
                           {selectedStudent.attendance_percentage < 75 && (
                             <li>
                               ⚠️ Improve attendance - Currently below 75%
                             </li>
                           )}
                           <li>
-                            📝 Encourage more assignment submissions
+                            Encourage more assignment submissions
                           </li>
                           <li>
-                            🧪 Motivation needed for more quiz attempts
+                            Motivation needed for more quiz attempts
                           </li>
                         </ul>
                       </div>
@@ -515,7 +536,7 @@ export default function AdminDashboard() {
           {activeTab === 'assignments' && (
             <div>
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">📝 Manage Assignments</h2>
+                <h2 className="text-2xl font-bold">Manage Assignments</h2>
                 <button
                   onClick={() => setShowNewAssignment(true)}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -641,7 +662,7 @@ export default function AdminDashboard() {
           {activeTab === 'quizzes' && (
             <div>
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">🧪 Manage Quizzes</h2>
+                <h2 className="text-2xl font-bold">Manage Quizzes</h2>
                 <button
                   onClick={() => setShowNewQuiz(true)}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -762,7 +783,7 @@ export default function AdminDashboard() {
           {activeTab === 'attendance' && (
             <div>
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">📍 Mark Attendance</h2>
+                <h2 className="text-2xl font-bold">Mark Attendance</h2>
                 <button
                   onClick={() => setShowAttendance(true)}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -791,17 +812,17 @@ export default function AdminDashboard() {
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     {students.map(student => (
                       <label
-                        key={student.id}
+                        key={student.user_id}
                         className="flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded cursor-pointer"
                       >
                         <input
                           type="checkbox"
                           onChange={e => {
                             const newStudents = attendance.students.includes(
-                              student.id
+                              student.user_id
                             )
-                              ? attendance.students.filter(id => id !== student.id)
-                              : [...attendance.students, student.id]
+                              ? attendance.students.filter(id => id !== student.user_id)
+                              : [...attendance.students, student.user_id]
 
                             setAttendance({
                               ...attendance,
@@ -839,7 +860,7 @@ export default function AdminDashboard() {
           {/* Upload Content Tab */}
           {activeTab === 'content' && (
             <div>
-              <h2 className="text-2xl font-bold mb-6">📚 Upload Study Materials</h2>
+              <h2 className="text-2xl font-bold mb-6">Upload Study Materials</h2>
 
               {showUploadContent && (
                 <div className="bg-white rounded-lg shadow p-6 mb-6">

@@ -121,3 +121,24 @@ async def admin_assistant(admin: User = Depends(verify_admin), db: Session = Dep
         response_text = "System looks healthy! No urgent action items found."
 
     return {"message": response_text}
+
+from pydantic import BaseModel
+
+class AIChatRequest(BaseModel):
+    query: str
+
+@router.post("/chat")
+async def chat_with_ai(request: AIChatRequest, token_data: dict = Depends(verify_token)):
+    # Mock AI logic for now
+    query_lower = request.query.lower()
+    
+    if "attendance" in query_lower:
+        response_text = "I recommend checking your attendance tab. Keeping it above 85% is ideal."
+    elif "gpa" in query_lower or "grade" in query_lower:
+        response_text = "To improve your GPA, focus on completing pending assignments and taking practice quizzes."
+    elif "assignment" in query_lower:
+        response_text = "You can view and submit assignments in the Assignments tab."
+    else:
+        response_text = f"I am your AI assistant. You asked: '{request.query}'. I'm here to help you manage your academics better."
+        
+    return {"message": response_text}

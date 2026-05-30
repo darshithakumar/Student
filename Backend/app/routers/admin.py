@@ -6,9 +6,10 @@ Endpoints for administrative operations (student tracking, attendance, marks, et
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 from datetime import date
+from pydantic import BaseModel
 
 from app.database import SessionLocal
 from app.models import (
@@ -21,6 +22,25 @@ from app.schemas import (
 )
 from app.core.security import verify_token
 from app.services.academic_service import AcademicService
+
+class GradeAssignmentRequest(BaseModel):
+    student_id: UUID
+    marks: float
+    feedback: Optional[str] = None
+
+class CreateAssignmentRequest(BaseModel):
+    title: str
+    description: Optional[str] = None
+    subject_name: str
+    due_date: str
+    max_marks: int = 10
+
+class CreateQuizRequest(BaseModel):
+    title: str
+    description: Optional[str] = None
+    subject_name: str
+    duration_minutes: int = 30
+    max_marks: int = 10
 
 router = APIRouter(tags=["admin"])
 
@@ -94,7 +114,9 @@ async def get_all_students(
                 "department": s.department,
                 "current_year": AcademicService.calculate_current_year(
                     s.batch_year, s.current_year_override
-                )
+                ),
+                "gpa": AcademicService.get_student_progress(db, s.user_id).gpa,
+                "attendance_percentage": AcademicService.get_attendance_summary(db, s.user_id).attendance_percentage
             }
             for s in students
         ],
@@ -434,16 +456,14 @@ async def get_pending_assignments(
 @router.post("/assignments/{assignment_id}/grade")
 async def grade_assignment(
     assignment_id: UUID,
-    student_id: UUID,
-    marks: float,
-    feedback: str = None,
+    grade_data: GradeAssignmentRequest,
     admin: User = Depends(verify_admin),
     db: Session = Depends(get_db)
 ):
     """Grade a submitted assignment"""
     student_assignment = db.query(StudentAssignment).filter(
         StudentAssignment.assignment_id == assignment_id,
-        StudentAssignment.student_id == student_id
+        StudentAssignment.student_id == grade_data.student_id
     ).first()
     
     if not student_assignment:
@@ -452,8 +472,8 @@ async def grade_assignment(
             detail="Submission not found"
         )
     
-    student_assignment.marks_obtained = marks
-    student_assignment.feedback = feedback
+    student_assignment.marks_obtained = grade_data.marks
+    student_assignment.feedback = grade_data.feedback
     student_assignment.status = "graded"
     student_assignment.graded_by = admin.id
     
@@ -463,9 +483,9 @@ async def grade_assignment(
     # Create notification for student
     AcademicService.create_notification(
         db,
-        student_id,
+        grade_data.student_id,
         "Assignment Graded",
-        f"Your assignment has been graded. Marks: {marks}",
+        f"Your assignment has been graded. Marks: {grade_data.marks}",
         "assignment",
         assignment_id
     )
@@ -477,14 +497,121 @@ async def grade_assignment(
         entity_type="assignment",
         entity_id=assignment_id,
         changes={
-            "marks": marks,
-            "feedback": feedback
+            "marks": grade_data.marks,
+            "feedback": grade_data.feedback
         }
     )
     db.add(log_entry)
     db.commit()
     
-    return {"message": "Assignment graded successfully", "marks": marks}
+    return {"message": "Assignment graded successfully", "marks": grade_data.marks}
+
+@router.post("/assignments")
+async def create_assignment_admin(
+    assignment_data: CreateAssignmentRequest,
+    admin: User = Depends(verify_admin),
+    db: Session = Depends(get_db)
+):
+    """Create a new assignment (simple version without academic_year_id)"""
+    from datetime import datetime
+    new_assignment = Assignment(
+        subject_name=assignment_data.subject_name,
+        title=assignment_data.title,
+        description=assignment_data.description,
+        due_date=datetime.fromisoformat(assignment_data.due_date) if assignment_data.due_date else None,
+        max_marks=assignment_data.max_marks,
+        created_by=admin.id
+    )
+    db.add(new_assignment)
+    db.commit()
+    db.refresh(new_assignment)
+    
+    log_entry = AdminLog(
+        admin_id=admin.id,
+        action="create",
+        entity_type="assignment",
+        entity_id=new_assignment.id,
+        changes={"title": new_assignment.title, "subject": new_assignment.subject_name}
+    )
+    db.add(log_entry)
+    db.commit()
+    
+    return {
+        "id": str(new_assignment.id),
+        "title": new_assignment.title,
+        "subject_name": new_assignment.subject_name,
+        "description": new_assignment.description,
+        "due_date": new_assignment.due_date.isoformat() if new_assignment.due_date else None,
+        "max_marks": new_assignment.max_marks
+    }
+
+@router.post("/quizzes")
+async def create_quiz_admin(
+    quiz_data: CreateQuizRequest,
+    admin: User = Depends(verify_admin),
+    db: Session = Depends(get_db)
+):
+    """Create a new quiz (simple version without academic_year_id)"""
+    new_quiz = Quiz(
+        subject_name=quiz_data.subject_name,
+        title=quiz_data.title,
+        description=quiz_data.description,
+        duration_minutes=quiz_data.duration_minutes,
+        max_marks=quiz_data.max_marks,
+        created_by=admin.id
+    )
+    db.add(new_quiz)
+    db.commit()
+    db.refresh(new_quiz)
+    
+    log_entry = AdminLog(
+        admin_id=admin.id,
+        action="create",
+        entity_type="quiz",
+        entity_id=new_quiz.id,
+        changes={"title": new_quiz.title, "subject": new_quiz.subject_name}
+    )
+    db.add(log_entry)
+    db.commit()
+    
+    return {
+        "id": str(new_quiz.id),
+        "title": new_quiz.title,
+        "subject_name": new_quiz.subject_name,
+        "description": new_quiz.description,
+        "duration_minutes": new_quiz.duration_minutes,
+        "max_marks": new_quiz.max_marks
+    }
+
+@router.post("/attendance")
+async def mark_attendance_single(
+    attendance_record: AttendanceCreate,
+    admin: User = Depends(verify_admin),
+    db: Session = Depends(get_db)
+):
+    """Mark attendance for a single student (alias for /attendance/mark)"""
+    AcademicService.record_attendance(
+        db,
+        attendance_record.student_id,
+        attendance_record.date,
+        attendance_record.present,
+        admin.id
+    )
+    
+    log_entry = AdminLog(
+        admin_id=admin.id,
+        action="update",
+        entity_type="attendance",
+        entity_id=attendance_record.student_id,
+        changes={
+            "date": str(attendance_record.date),
+            "present": attendance_record.present
+        }
+    )
+    db.add(log_entry)
+    db.commit()
+    
+    return {"message": "Attendance marked successfully"}
 
 # ==================== LOGS & ANALYTICS ====================
 

@@ -30,17 +30,20 @@ function App() {
         })
         
       // Initialize WebSocket connection
-      const ws = new WebSocket(`ws://localhost:8000/ws/${token}`)
-      
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        if (data.type === 'notification') {
-          alert(`New Notification: ${data.message}`)
+      const userId = localStorage.getItem('user_id')
+      if (userId) {
+        const ws = new WebSocket(`ws://localhost:8000/ws/notifications/${userId}`)
+        
+        ws.onmessage = (event) => {
+          const data = JSON.parse(event.data)
+          if (data.type === 'notification') {
+            alert(`New Notification: ${data.message}`)
+          }
         }
-      }
-      
-      return () => {
-        ws.close()
+        
+        return () => {
+          ws.close()
+        }
       }
     }
   }, [setUser, setToken])
