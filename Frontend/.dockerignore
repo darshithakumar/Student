@@ -1,0 +1,16 @@
+# Node modules (reinstalled during build)
+node_modules/
+
+# Build output (built during Docker build)
+dist/
+
+# Git & IDE
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Dev files
+*.md
+.env
+.env.*

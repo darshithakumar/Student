@@ -1,0 +1,32 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Dev & test files
+*.log
+*.md
+.env
+.env.*
+test_*.py
+*_test.py
+
+# Git & IDE
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Database init scripts (not needed at runtime)
+create_database.py
+create_schema.sql
+create_test_data.py
+init_db*.py
+setup_db.py

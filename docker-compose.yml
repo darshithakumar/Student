@@ -1,14 +1,64 @@
-version: '3'
+version: '3.8'
 
 services:
+
+  # ── PostgreSQL Database ──────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: college-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: college_portal
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - college-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI Backend ──────────────────────────────────────────────────
   backend:
     build: ./Backend
+    container_name: college-backend
+    restart: unless-stopped
     ports:
       - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/college_portal
+      SECRET_KEY: college-portal-2024-super-secret-key-min-32-chars-change-production
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: "60"
+      DEBUG: "True"
+      ENVIRONMENT: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - college-network
 
+  # ── React Frontend ───────────────────────────────────────────────────
   frontend:
     build: ./Frontend
+    container_name: college-frontend
+    restart: unless-stopped
     ports:
       - "3000:80"
     depends_on:
       - backend
+    networks:
+      - college-network
+
+# ── Volumes & Networks ───────────────────────────────────────────────
+volumes:
+  postgres_data:
+
+networks:
+  college-network:
+    driver: bridge
