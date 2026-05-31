@@ -1,4 +1,4 @@
-from passlib.context import CryptContext
+
 from jose import jwt, JWTError
 from datetime import datetime, timedelta
 from fastapi import Depends, HTTPException, status, Request
@@ -7,18 +7,26 @@ import hashlib
 
 from app.core.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 
-# Use bcrypt exclusively for secure password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+import bcrypt
+from fastapi.security import HTTPBearer
 
 security = HTTPBearer()
 
 def hash_password(password: str) -> str:
     """Hash a password securely using bcrypt"""
-    return pwd_context.hash(password)
+    pwd_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(pwd_bytes, salt)
+    return hashed.decode('utf-8')
 
 def verify_password(password: str, hashed: str) -> bool:
     """Verify a password against its hash"""
-    return pwd_context.verify(password, hashed)
+    try:
+        pwd_bytes = password.encode('utf-8')
+        hashed_bytes = hashed.encode('utf-8')
+        return bcrypt.checkpw(pwd_bytes, hashed_bytes)
+    except Exception:
+        return False
 
 def create_token(data: dict) -> str:
     """Create a JWT token"""
