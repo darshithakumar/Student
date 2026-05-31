@@ -5,10 +5,19 @@ A modern, automated college academic portal that dynamically delivers year-based
 ## 🌟 Features
 
 ### 🧑‍🎓 Student Interface
-- **Dynamic Content Delivery:** Automatically detects the student's batch year and current academic year to serve relevant Notes, PPTs, Textbooks, and PYQs (Previous Year Questions).
+- **Just-In-Time (JIT) Account Provisioning:** No manual sign-up required. Accounts are automatically provisioned when a student logs in for the first time using their institutional email (`vvceYYDEPT####@vvce.ac.in`) and the universal default password.
+- **Forced Password Reset:** For maximum security, students are forced to set a personal, secure password immediately upon their first JIT login.
+- **Dynamic Content Delivery:** Automatically detects the student's batch year (parsed from email) and current academic year (September-August cycle) to serve relevant Notes, PPTs, Textbooks, and PYQs.
 - **AI Study Assistant:** A built-in AI assistant that analyzes your GPA, pending assignments, and attendance to provide personalized study insights.
 - **Academic Tracking:** View real-time attendance, track GPA progression, and submit assignments and quizzes natively in the browser.
 - **To-Do List:** Built-in task manager for tracking upcoming deadlines.
+
+### 🧪 Test Accounts
+You can test the automated JIT Provisioning and Year Calculation using the universal default password **`VvceStudent@123`** with the following emails:
+- **1st Year:** `vvce25cse0001@vvce.ac.in`
+- **2nd Year:** `vvce24cse0001@vvce.ac.in`
+- **3rd Year:** `vvce23cse0001@vvce.ac.in`
+- **4th Year:** `vvce22cse0001@vvce.ac.in`
 
 ### 👨‍💼 Administrator Interface
 - **Automated Year Progression:** Students automatically progress to the next academic year without manual intervention (with options for manual overrides).
@@ -94,7 +103,7 @@ This project is configured to be deployed easily using Render and Vercel.
 2. **Deploy Frontend (Vercel):**
    - Connect GitHub to Vercel.
    - Set Framework Preset to **Vite**.
-   - Add the `VITE_API_URL` environment variable pointing to your deployed Render URL (e.g., `https://your-backend.onrender.com/api`).
+   - Add the `VITE_API_URL` environment variable pointing to your deployed Render URL **WITH `/api` AT THE END** (e.g., `https://your-backend.onrender.com/api`). **This is critical** for the frontend to route correctly.
 
 3. **Secure the Connection:**
    - Take your Vercel URL and add it to your Render backend's `FRONTEND_URL` environment variable to secure CORS.
