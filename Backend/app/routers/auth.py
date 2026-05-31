@@ -156,10 +156,12 @@ def login(data: LoginSchema, db: Session = Depends(get_db)):
                     db.commit()
                     db.refresh(user)
                     
+                    email_prefix = email.split('@')[0].upper()
+                    
                     # Create Student
                     student = Student(
                         user_id=user.id,
-                        name=f"Student {branch}-{batch_year_short}",
+                        name=email_prefix,
                         batch_year=batch_year,
                         department=branch
                     )
