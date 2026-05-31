@@ -257,34 +257,33 @@ def validate_token(request: ValidateTokenRequest):
             detail="Invalid token"
         )
 
- c l a s s   C h a n g e P a s s w o r d R e q u e s t ( P y d a n t i c B a s e ) : 
-         t o k e n :   s t r 
-         n e w _ p a s s w o r d :   s t r 
- 
- @ r o u t e r . p o s t ( " / c h a n g e - p a s s w o r d " ) 
- d e f   c h a n g e _ p a s s w o r d ( r e q u e s t :   C h a n g e P a s s w o r d R e q u e s t ,   d b :   S e s s i o n   =   D e p e n d s ( g e t _ d b ) ) : 
-         " " " 
-         C h a n g e   t h e   u s e r   p a s s w o r d   a f t e r   i n i t i a l   J I T   l o g i n 
-         " " " 
-         t r y : 
-                 f r o m   j o s e   i m p o r t   J W T E r r o r ,   j w t 
-                 f r o m   a p p . c o r e . c o n f i g   i m p o r t   S E C R E T _ K E Y ,   A L G O R I T H M 
-                 
-                 p a y l o a d   =   j w t . d e c o d e ( r e q u e s t . t o k e n ,   S E C R E T _ K E Y ,   a l g o r i t h m s = [ A L G O R I T H M ] ) 
-                 u s e r _ i d   =   p a y l o a d . g e t ( " s u b " ) 
-                 
-                 i f   n o t   u s e r _ i d : 
-                         r a i s e   H T T P E x c e p t i o n ( s t a t u s _ c o d e = 4 0 1 ,   d e t a i l = " I n v a l i d   t o k e n " ) 
-                         
-                 u s e r   =   d b . q u e r y ( U s e r ) . f i l t e r ( U s e r . i d   = =   u s e r _ i d ) . f i r s t ( ) 
-                 i f   n o t   u s e r : 
-                         r a i s e   H T T P E x c e p t i o n ( s t a t u s _ c o d e = 4 0 4 ,   d e t a i l = " U s e r   n o t   f o u n d " ) 
-                         
-                 u s e r . p a s s w o r d _ h a s h   =   h a s h _ p a s s w o r d ( r e q u e s t . n e w _ p a s s w o r d ) 
-                 d b . c o m m i t ( ) 
-                 
-                 r e t u r n   { " m e s s a g e " :   " P a s s w o r d   c h a n g e d   s u c c e s s f u l l y " } 
-         e x c e p t   E x c e p t i o n   a s   e : 
-                 r a i s e   H T T P E x c e p t i o n ( s t a t u s _ c o d e = 4 0 0 ,   d e t a i l = " I n v a l i d   t o k e n   o r   r e q u e s t " ) 
-  
- 
+class ChangePasswordRequest(PydanticBase):
+    token: str
+    new_password: str
+
+@router.post("/change-password")
+def change_password(request: ChangePasswordRequest, db: Session = Depends(get_db)):
+    """
+    Change the user password after initial JIT login
+    """
+    try:
+        from jose import JWTError, jwt
+        from app.core.config import SECRET_KEY, ALGORITHM
+        
+        payload = jwt.decode(request.token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token")
+            
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+            
+        user.password_hash = hash_password(request.new_password)
+        db.commit()
+        
+        return {"message": "Password changed successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid token or request")
+
