@@ -7,36 +7,18 @@ import hashlib
 
 from app.core.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 
-# Try to use bcrypt, fall back to MD5 for testing
-try:
-    pwd_context = CryptContext(schemes=["bcrypt"])
-    USE_MD5 = False
-except:
-    USE_MD5 = True
+# Use bcrypt exclusively for secure password hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 security = HTTPBearer()
 
 def hash_password(password: str) -> str:
-    """Hash a password using bcrypt or MD5 (test fallback)"""
-    if USE_MD5:
-        # For testing only
-        return hashlib.md5(password.encode()).hexdigest()
-    try:
-        return pwd_context.hash(password)
-    except Exception:
-        # Fallback keeps local dev usable when bcrypt backend is misconfigured.
-        return hashlib.md5(password.encode()).hexdigest()
+    """Hash a password securely using bcrypt"""
+    return pwd_context.hash(password)
 
 def verify_password(password: str, hashed: str) -> bool:
     """Verify a password against its hash"""
-    if USE_MD5:
-        # For testing only
-        return hashlib.md5(password.encode()).hexdigest() == hashed
-    try:
-        return pwd_context.verify(password, hashed)
-    except:
-        # Fallback to MD5 if verification fails
-        return hashlib.md5(password.encode()).hexdigest() == hashed
+    return pwd_context.verify(password, hashed)
 
 def create_token(data: dict) -> str:
     """Create a JWT token"""

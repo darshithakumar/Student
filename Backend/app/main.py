@@ -10,10 +10,12 @@ app = FastAPI(
     version="1.0.0"
 )
 
+from app.core.config import FRONTEND_URL
+
 # CORS middleware for frontend integration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Update with specific frontend URL in production
+    allow_origins=[FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
