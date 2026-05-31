@@ -218,7 +218,7 @@ def login(data: LoginSchema, db: Session = Depends(get_db)):
         traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Login error: {str(e)}"
+            detail=f"Login error: {str(e)}\n\n{traceback.format_exc()}"
         )
 
 from pydantic import BaseModel as PydanticBase
