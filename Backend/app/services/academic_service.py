@@ -24,10 +24,18 @@ class AcademicService:
         """
         Calculate the current academic year for a student
         
-        Logic (September to August):
-        - If we are in Jan-Aug (Month 1-8), the academic year started last year.
-        - If we are in Sept-Dec (Month 9-12), the academic year started this year.
-        - Example: batch=2023, current=May 2026. Academic start year = 2025. Current Year = 2025 - 2023 + 1 = 3.
+        Logic:
+        - If override_year is set, use that
+        - Otherwise, use September as the start of the academic year.
+        - If current month is Jan-Aug, the academic year started last year.
+        - If current month is Sept-Dec, the academic year started this year.
+        
+        Args:
+            batch_year: Year the student joined (e.g., 2023)
+            override_year: Optional override value
+            
+        Returns:
+            Current academic year (1, 2, 3, or 4)
         """
         if override_year:
             return min(override_year, 4)
@@ -37,7 +45,7 @@ class AcademicService:
         
         calculated_year = academic_start_year - batch_year + 1
         
-        # Cap at 4 for 4-year course
+        # Cap at 4 for 4-year course (or modify as needed)
         return min(max(1, calculated_year), 4)
 
     @staticmethod

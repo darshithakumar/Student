@@ -16,6 +16,11 @@ export const useAuthStore = create((set) => ({
       localStorage.setItem('token', access_token)
       localStorage.setItem('user_id', user_id)
       localStorage.setItem('role', role)
+      if (requires_password_change) {
+        localStorage.setItem('requires_password_change', 'true')
+      } else {
+        localStorage.removeItem('requires_password_change')
+      }
 
       set({
         token: access_token,

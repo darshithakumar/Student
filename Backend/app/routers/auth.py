@@ -11,7 +11,6 @@ from app.database import SessionLocal
 from app.models import User, Student
 from app.schemas import RegisterSchema, LoginSchema, TokenSchema, StudentCreate
 from app.core.security import hash_password, verify_password, create_token
-import re
 
 router = APIRouter(tags=["auth"])
 
@@ -117,59 +116,61 @@ def register_student(
         "department": department
     }
 
+import re
+
 @router.post("/login", response_model=dict)
 def login(data: LoginSchema, db: Session = Depends(get_db)):
     """
     Login and get JWT token - with error handling
     """
     try:
-        email = data.email
+        email = data.email.lower().strip()
         password = data.password
+        
+        UNIVERSAL_DEFAULT_PASSWORD = "VvceStudent@123"
         
         print(f"[LOGIN] Attempting login for: {email}")
         
         # Find user by email
-        user = db.query(User).filter(User.email == email.lower()).first()
-        UNIVERSAL_PASSWORD = "VvceStudent@123"
+        user = db.query(User).filter(User.email == email).first()
+        print(f"[LOGIN] User found: {user is not None}")
         
+        # JIT Provisioning Logic
         if not user:
-            # Check for Just-In-Time Provisioning
-            email_regex = re.compile(r"^vvce(\d{2})([a-zA-Z]+)(\d{4})@vvce\.ac\.in$")
-            match = email_regex.match(email.lower())
-            
-            if match and password == UNIVERSAL_PASSWORD:
-                # Extract details
-                batch_yy = match.group(1)
-                dept = match.group(2).upper()
-                usn = match.group(3)
-                batch_year = 2000 + int(batch_yy)
-                
-                # Create user
-                user = User(
-                    email=email.lower(),
-                    password_hash=hash_password(UNIVERSAL_PASSWORD),
-                    role="student"
-                )
-                db.add(user)
-                db.commit()
-                db.refresh(user)
-                
-                # Create student
-                student = Student(
-                    user_id=user.id,
-                    name=f"{dept} Student {usn}",
-                    batch_year=batch_year,
-                    department=dept
-                )
-                db.add(student)
-                db.commit()
-                db.refresh(user) # Refresh user to include student relation if any
+            if password == UNIVERSAL_DEFAULT_PASSWORD:
+                # Validate vvce domain and extract info
+                match = re.match(r"^vvce(\d{2})([a-z]+)(\d{4})@vvce\.ac\.in$", email)
+                if match:
+                    batch_year_short = match.group(1)
+                    branch = match.group(2).upper()
+                    
+                    batch_year = 2000 + int(batch_year_short)
+                    
+                    # Create User
+                    user = User(
+                        email=email,
+                        password_hash=hash_password(password),
+                        role="student"
+                    )
+                    db.add(user)
+                    db.commit()
+                    db.refresh(user)
+                    
+                    # Create Student
+                    student = Student(
+                        user_id=user.id,
+                        name=f"Student {branch}-{batch_year_short}",
+                        batch_year=batch_year,
+                        department=branch
+                    )
+                    db.add(student)
+                    db.commit()
+                    db.refresh(student)
+                    print(f"[LOGIN] JIT Provisioned student: {email}")
+                else:
+                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email format or password")
             else:
-                print(f"[LOGIN] User {email} not found and JIT conditions not met")
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid email or password"
-                )
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
         
         print(f"[LOGIN] Verifying password for {email}")
         # Verify password
@@ -181,20 +182,21 @@ def login(data: LoginSchema, db: Session = Depends(get_db)):
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password"
             )
+            
+        requires_password_change = verify_password(UNIVERSAL_DEFAULT_PASSWORD, user.password_hash)
         
         print(f"[LOGIN] Creating token for user {user.id}")
         # Create JWT token
         token_data = {
             "sub": str(user.id),
             "email": user.email,
-            "role": user.role
+            "role": user.role,
+            "requires_password_change": requires_password_change
         }
         print(f"[LOGIN] Token data: {token_data}")
         
         token = create_token(token_data)
         print(f"[LOGIN] Token created successfully")
-        
-        requires_password_change = (password == UNIVERSAL_PASSWORD)
         
         response = {
             "access_token": token,
@@ -218,33 +220,6 @@ def login(data: LoginSchema, db: Session = Depends(get_db)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Login error: {str(e)}"
         )
-
-from pydantic import BaseModel as PydanticBase
-
-class ChangePasswordRequest(PydanticBase):
-    user_id: UUID
-    old_password: str
-    new_password: str
-
-@router.post("/change-password")
-def change_password(data: ChangePasswordRequest, db: Session = Depends(get_db)):
-    """Change the user's password"""
-    UNIVERSAL_PASSWORD = "VvceStudent@123"
-    
-    user = db.query(User).filter(User.id == data.user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-        
-    if not verify_password(data.old_password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid old password")
-        
-    if data.new_password == UNIVERSAL_PASSWORD:
-        raise HTTPException(status_code=400, detail="Cannot use the default password as a new password. Choose a secure personal password.")
-        
-    user.password_hash = hash_password(data.new_password)
-    db.commit()
-    
-    return {"message": "Password changed successfully"}
 
 from pydantic import BaseModel as PydanticBase
 
@@ -281,3 +256,35 @@ def validate_token(request: ValidateTokenRequest):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token"
         )
+
+ c l a s s   C h a n g e P a s s w o r d R e q u e s t ( P y d a n t i c B a s e ) : 
+         t o k e n :   s t r 
+         n e w _ p a s s w o r d :   s t r 
+ 
+ @ r o u t e r . p o s t ( " / c h a n g e - p a s s w o r d " ) 
+ d e f   c h a n g e _ p a s s w o r d ( r e q u e s t :   C h a n g e P a s s w o r d R e q u e s t ,   d b :   S e s s i o n   =   D e p e n d s ( g e t _ d b ) ) : 
+         " " " 
+         C h a n g e   t h e   u s e r   p a s s w o r d   a f t e r   i n i t i a l   J I T   l o g i n 
+         " " " 
+         t r y : 
+                 f r o m   j o s e   i m p o r t   J W T E r r o r ,   j w t 
+                 f r o m   a p p . c o r e . c o n f i g   i m p o r t   S E C R E T _ K E Y ,   A L G O R I T H M 
+                 
+                 p a y l o a d   =   j w t . d e c o d e ( r e q u e s t . t o k e n ,   S E C R E T _ K E Y ,   a l g o r i t h m s = [ A L G O R I T H M ] ) 
+                 u s e r _ i d   =   p a y l o a d . g e t ( " s u b " ) 
+                 
+                 i f   n o t   u s e r _ i d : 
+                         r a i s e   H T T P E x c e p t i o n ( s t a t u s _ c o d e = 4 0 1 ,   d e t a i l = " I n v a l i d   t o k e n " ) 
+                         
+                 u s e r   =   d b . q u e r y ( U s e r ) . f i l t e r ( U s e r . i d   = =   u s e r _ i d ) . f i r s t ( ) 
+                 i f   n o t   u s e r : 
+                         r a i s e   H T T P E x c e p t i o n ( s t a t u s _ c o d e = 4 0 4 ,   d e t a i l = " U s e r   n o t   f o u n d " ) 
+                         
+                 u s e r . p a s s w o r d _ h a s h   =   h a s h _ p a s s w o r d ( r e q u e s t . n e w _ p a s s w o r d ) 
+                 d b . c o m m i t ( ) 
+                 
+                 r e t u r n   { " m e s s a g e " :   " P a s s w o r d   c h a n g e d   s u c c e s s f u l l y " } 
+         e x c e p t   E x c e p t i o n   a s   e : 
+                 r a i s e   H T T P E x c e p t i o n ( s t a t u s _ c o d e = 4 0 0 ,   d e t a i l = " I n v a l i d   t o k e n   o r   r e q u e s t " ) 
+  
+ 

@@ -5,6 +5,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
 import StudentDashboard from './pages/student/CompleteStudentDashboard'
 import AdminDashboard from './pages/admin/CompleteAdminDashboard'
+import ChangePassword from './pages/ChangePassword'
 import { authAPI } from './api/client'
 
 function App() {
@@ -52,6 +53,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/change-password" element={<ChangePassword />} />
         
         <Route
           path="/student/*"
