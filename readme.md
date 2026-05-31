@@ -1,147 +1,109 @@
-Project Overview
-#  College Academic Portal
+# 🎓 Student Academic Portal
 
-A full-stack academic management platform designed to streamline student and administrator operations within educational institutions.
+A modern, automated college academic portal that dynamically delivers year-based content to students and provides powerful management tools for administrators.
 
-## Features
+## 🌟 Features
 
-### Student Module
-- View assignments, quizzes, attendance, and marks
-- Receive notifications and study materials
-- Track academic progress
+### 🧑‍🎓 Student Interface
+- **Dynamic Content Delivery:** Automatically detects the student's batch year and current academic year to serve relevant Notes, PPTs, Textbooks, and PYQs (Previous Year Questions).
+- **AI Study Assistant:** A built-in AI assistant that analyzes your GPA, pending assignments, and attendance to provide personalized study insights.
+- **Academic Tracking:** View real-time attendance, track GPA progression, and submit assignments and quizzes natively in the browser.
+- **To-Do List:** Built-in task manager for tracking upcoming deadlines.
 
-### Admin Module
-- Manage students and academic records
-- Upload assignments and study materials
-- Monitor attendance and performance analytics
+### 👨‍💼 Administrator Interface
+- **Automated Year Progression:** Students automatically progress to the next academic year without manual intervention (with options for manual overrides).
+- **Student Management:** View student lists, track individual academic progress, and monitor attendance metrics.
+- **Content Management:** Upload and distribute academic content (PDFs, PPTs, etc.) organized by year and department.
+- **AI Admin Assistant:** Get automated insights on low-attendance students and pending grading tasks.
 
-## Tech Stack
+## 🚀 Tech Stack
 
 ### Frontend
-- React 18
-- Vite
-- Tailwind CSS
+- **Framework:** React + Vite
+- **Styling:** Tailwind CSS (Glassmorphism & Modern UI)
+- **Deployment:** Vercel
 
 ### Backend
-- FastAPI
-- SQLAlchemy
-- PostgreSQL / SQLite
+- **Framework:** FastAPI (Python)
+- **Database:** PostgreSQL (Hosted on Neon)
+- **Authentication:** JWT & Bcrypt Password Hashing
+- **Deployment:** Render
 
-### DevOps
-- Docker
-- Kubernetes
-- Jenkins
-- Docker Hub
+---
 
-## Test Credentials
+## 💻 Local Development Setup
 
-### Admin Login
+### 1. Clone the Repository
+```bash
+git clone https://github.com/darshithakumar/Student.git
+cd Student
+```
 
-Email: admin@college.com
-Password: admin123
-
-### Student Login
-
-Email: student1@college.com
-Password: student123
-
-
-## Run Locally
-
-### Backend
+### 2. Backend Setup
+```bash
 cd Backend
 python -m venv .venv
+
+# Activate the virtual environment
+# On Windows:
 .venv\Scripts\activate
+# On Mac/Linux:
+source .venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
-python create_test_data.py
-python -m uvicorn app.main:app --reload
 
-### Frontend
+# Set up environment variables
+# Create a .env file in the Backend directory and add:
+# DATABASE_URL=postgresql://username:password@host/dbname
+# SECRET_KEY=your_super_secret_key
+# FRONTEND_URL=http://localhost:5173
+
+# Run the backend server
+uvicorn app.main:app --reload --port 8000
+```
+
+### 3. Frontend Setup
+```bash
+# Open a new terminal tab
 cd Frontend
+
+# Install dependencies
 npm install
+
+# Set up environment variables
+# Create a .env file in the Frontend directory and add:
+# VITE_API_URL=http://localhost:8000/api
+
+# Run the frontend server
 npm run dev
+```
 
-Frontend:
-http://localhost:5173
+---
 
-Backend:
-http://localhost:8000
+## 🌐 Production Deployment
 
-API Docs:
-http://localhost:8000/docs
+This project is configured to be deployed easily using Render and Vercel.
 
-##  Docker Deployment
+1. **Deploy Backend (Render):**
+   - Connect GitHub to Render as a Web Service.
+   - Build Command: `pip install -r requirements.txt`
+   - Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - Ensure you set `DATABASE_URL` and `SECRET_KEY` in Render's environment variables.
 
-Build Backend Image
+2. **Deploy Frontend (Vercel):**
+   - Connect GitHub to Vercel.
+   - Set Framework Preset to **Vite**.
+   - Add the `VITE_API_URL` environment variable pointing to your deployed Render URL (e.g., `https://your-backend.onrender.com/api`).
 
-docker build -t college-backend ./Backend
+3. **Secure the Connection:**
+   - Take your Vercel URL and add it to your Render backend's `FRONTEND_URL` environment variable to secure CORS.
 
-Build Frontend Image
+---
 
-docker build -t college-frontend ./Frontend
+## 🏗️ CI/CD Roadmap
 
-Run Backend
-
-docker run -p 8000:8000 college-backend
-
-Run Frontend
-
-docker run -p 3000:80 college-frontend
-
-## Kubernetes Deployment
-
-Apply Resources
-
-kubectl apply -f k8s/
-
-Verify Pods
-
-kubectl get pods
-
-Verify Services
-
-kubectl get svc
-
-## Jenkins CI/CD
-
-Pipeline Workflow
-
-GitHub
-   ↓
-Jenkins
-   ↓
-Docker Build
-   ↓
-Docker Hub
-   ↓
-Kubernetes Deployment
-
-The Jenkins pipeline automatically pulls source code from GitHub, builds Docker images, and deploys updated versions to Kubernetes.
-
-## Architecture
-
-Student/Admin
-      ↓
-React Frontend
-      ↓
-FastAPI Backend
-      ↓
-PostgreSQL Database
-      ↓
-Docker Containers
-      ↓
-Kubernetes Cluster
-      ↓
-Jenkins CI/CD
-
-
-## Highlights
-
-- Role-Based Authentication (Student/Admin)
-- RESTful API Architecture
-- Docker Containerization
-- Kubernetes Orchestration
-- Jenkins CI/CD Integration
-- Responsive React Frontend
-- PostgreSQL Database Integration
-- Scalable Deployment Architecture
+The long-term infrastructure plan for this project involves transitioning to a full enterprise-grade CI/CD pipeline:
+- **Docker:** Containerizing the frontend and backend for guaranteed environment consistency.
+- **GitHub Actions / Jenkins:** Automated testing and Docker Image building upon every commit.
+- **Kubernetes:** Orchestrating the containers for zero-downtime rollouts, auto-scaling, and self-healing.
