@@ -24,26 +24,20 @@ class AcademicService:
         """
         Calculate the current academic year for a student
         
-        Logic:
-        - If override_year is set, use that
-        - Otherwise: current_year = (current_year - batch_year) + 1
-        - Example: batch_year=2020, current_year=2026 → 2026-2020+1 = 7
-        - Cap at 4 (assuming 4-year course)
-        
-        Args:
-            batch_year: Year the student joined (e.g., 2020)
-            override_year: Optional override value
-            
-        Returns:
-            Current academic year (1, 2, 3, or 4)
+        Logic (September to August):
+        - If we are in Jan-Aug (Month 1-8), the academic year started last year.
+        - If we are in Sept-Dec (Month 9-12), the academic year started this year.
+        - Example: batch=2023, current=May 2026. Academic start year = 2025. Current Year = 2025 - 2023 + 1 = 3.
         """
         if override_year:
             return min(override_year, 4)
         
-        current_year = datetime.now().year
-        calculated_year = current_year - batch_year + 1
+        now = datetime.now()
+        academic_start_year = now.year if now.month >= 9 else now.year - 1
         
-        # Cap at 4 for 4-year course (or modify as needed)
+        calculated_year = academic_start_year - batch_year + 1
+        
+        # Cap at 4 for 4-year course
         return min(max(1, calculated_year), 4)
 
     @staticmethod

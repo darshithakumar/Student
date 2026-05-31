@@ -11,6 +11,7 @@ from app.database import SessionLocal
 from app.models import User, Student
 from app.schemas import RegisterSchema, LoginSchema, TokenSchema, StudentCreate
 from app.core.security import hash_password, verify_password, create_token
+import re
 
 router = APIRouter(tags=["auth"])
 
@@ -128,15 +129,47 @@ def login(data: LoginSchema, db: Session = Depends(get_db)):
         print(f"[LOGIN] Attempting login for: {email}")
         
         # Find user by email
-        user = db.query(User).filter(User.email == email).first()
-        print(f"[LOGIN] User found: {user is not None}")
+        user = db.query(User).filter(User.email == email.lower()).first()
+        UNIVERSAL_PASSWORD = "VvceStudent@123"
         
         if not user:
-            print(f"[LOGIN] User {email} not found in database")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid email or password"
-            )
+            # Check for Just-In-Time Provisioning
+            email_regex = re.compile(r"^vvce(\d{2})([a-zA-Z]+)(\d{4})@vvce\.ac\.in$")
+            match = email_regex.match(email.lower())
+            
+            if match and password == UNIVERSAL_PASSWORD:
+                # Extract details
+                batch_yy = match.group(1)
+                dept = match.group(2).upper()
+                usn = match.group(3)
+                batch_year = 2000 + int(batch_yy)
+                
+                # Create user
+                user = User(
+                    email=email.lower(),
+                    password_hash=hash_password(UNIVERSAL_PASSWORD),
+                    role="student"
+                )
+                db.add(user)
+                db.commit()
+                db.refresh(user)
+                
+                # Create student
+                student = Student(
+                    user_id=user.id,
+                    name=f"{dept} Student {usn}",
+                    batch_year=batch_year,
+                    department=dept
+                )
+                db.add(student)
+                db.commit()
+                db.refresh(user) # Refresh user to include student relation if any
+            else:
+                print(f"[LOGIN] User {email} not found and JIT conditions not met")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid email or password"
+                )
         
         print(f"[LOGIN] Verifying password for {email}")
         # Verify password
@@ -161,11 +194,14 @@ def login(data: LoginSchema, db: Session = Depends(get_db)):
         token = create_token(token_data)
         print(f"[LOGIN] Token created successfully")
         
+        requires_password_change = (password == UNIVERSAL_PASSWORD)
+        
         response = {
             "access_token": token,
             "token_type": "bearer",
             "user_id": str(user.id),
-            "role": user.role
+            "role": user.role,
+            "requires_password_change": requires_password_change
         }
         
         print(f"[LOGIN] Login successful for {email}")
@@ -182,6 +218,33 @@ def login(data: LoginSchema, db: Session = Depends(get_db)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Login error: {str(e)}"
         )
+
+from pydantic import BaseModel as PydanticBase
+
+class ChangePasswordRequest(PydanticBase):
+    user_id: UUID
+    old_password: str
+    new_password: str
+
+@router.post("/change-password")
+def change_password(data: ChangePasswordRequest, db: Session = Depends(get_db)):
+    """Change the user's password"""
+    UNIVERSAL_PASSWORD = "VvceStudent@123"
+    
+    user = db.query(User).filter(User.id == data.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    if not verify_password(data.old_password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid old password")
+        
+    if data.new_password == UNIVERSAL_PASSWORD:
+        raise HTTPException(status_code=400, detail="Cannot use the default password as a new password. Choose a secure personal password.")
+        
+    user.password_hash = hash_password(data.new_password)
+    db.commit()
+    
+    return {"message": "Password changed successfully"}
 
 from pydantic import BaseModel as PydanticBase
 

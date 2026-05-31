@@ -34,6 +34,7 @@ export const authAPI = {
   register: (data) => api.post('/auth/register/student', data),
   login: (email, password) => api.post('/auth/login', { email, password }),
   validateToken: (token) => api.post('/auth/validate-token', { token }),
+  changePassword: (data) => api.post('/auth/change-password', data),
 }
 
 export const studentAPI = {

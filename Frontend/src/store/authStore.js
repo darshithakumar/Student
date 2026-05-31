@@ -11,7 +11,7 @@ export const useAuthStore = create((set) => ({
     set({ isLoading: true, error: null })
     try {
       const response = await authAPI.login(email, password)
-      const { access_token, user_id, role } = response.data
+      const { access_token, user_id, role, requires_password_change } = response.data
       
       localStorage.setItem('token', access_token)
       localStorage.setItem('user_id', user_id)
@@ -23,7 +23,7 @@ export const useAuthStore = create((set) => ({
         isLoading: false,
       })
 
-      return { success: true }
+      return { success: true, requires_password_change }
     } catch (error) {
       const message = error.response?.data?.detail || 'Login failed'
       set({ error: message, isLoading: false })
