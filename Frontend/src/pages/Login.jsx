@@ -6,8 +6,8 @@ import { Lock, Mail } from 'lucide-react'
 export default function Login() {
   const navigate = useNavigate()
   const { login, isLoading, error, clearError } = useAuthStore()
-  const [email, setEmail] = useState('student1@college.com')
-  const [password, setPassword] = useState('student123')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState('')
 
   const handleSubmit = async (e) => {
@@ -56,7 +56,7 @@ export default function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="input-field shadow-inner"
-              placeholder="your.email@college.edu"
+              placeholder="your.email@vvce.ac.in"
               required
             />
           </div>
@@ -94,14 +94,6 @@ export default function Login() {
             )}
           </button>
         </form>
-
-        <div className="mt-8 text-center text-sm text-slate-500">
-          <p>Mock accounts for testing:</p>
-          <div className="flex justify-center gap-4 mt-2 font-medium">
-            <span className="bg-slate-100 px-3 py-1 rounded-full text-slate-700">admin@college.edu</span>
-            <span className="bg-slate-100 px-3 py-1 rounded-full text-slate-700">john.doe@college.edu</span>
-          </div>
-        </div>
       </div>
     </div>
   )
